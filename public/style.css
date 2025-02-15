@@ -318,7 +318,7 @@ li:hover {
 .compass-markers .west { left: 10%; top: 50%; transform: translateY(-50%); }
 .compass-needle {
    position: absolute;
-    top: 50%; /* Position the needle vertically at the center */
+    top: 650%; /* Position the needle vertically at the center */
     left: 50%; /* Position the needle horizontally at the center */
     transform-origin: center; /* Set the rotation origin to the center */
     width: 6px; /* Width of the needle */
