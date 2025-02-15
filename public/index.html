@@ -4,17 +4,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Compass App</title>
-    <link rel="stylesheet" href="styles.css"> <!-- Link to your CSS file -->
+    <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
     <div id="app">
-        <!-- Splash Screen (Removed) -->
-        <!-- No loading overlay or splash screen -->
-
         <!-- Main Pages -->
         <div id="main-page" class="page active">
             <h1>Welcome to Compass App</h1>
-            <button onclick="navigateTo('player-page')">Start</button>
+            <button onclick="navigateTo('leader-page')">Leader Login</button>
+            <button onclick="navigateTo('player-page')">Player Login</button>
+        </div>
+
+        <!-- Leader Page -->
+        <div id="leader-page" class="page">
+            <div id="password-setup" style="display: none;">
+                <h2>Set Leader Password</h2>
+                <input id="new-password" type="password" placeholder="Enter New Password">
+                <button onclick="savePassword()">Save Password</button>
+            </div>
+            <div id="password-input" style="display: none;">
+                <h2>Enter Leader Password</h2>
+                <input id="existing-password" type="password" placeholder="Enter Password">
+                <button onclick="validatePassword()">Login</button>
+            </div>
+            <div id="leader-content" style="display: none;">
+                <h2>Leader Dashboard</h2>
+                <button onclick="navigateTo('create-task-page')">Create Tasks</button>
+                <button onclick="navigateTo('view-current-task-page')">View Current Tasks</button>
+                <button onclick="navigateTo('points-page')">View Points</button>
+                <button onclick="resetGame()">Reset Game</button>
+            </div>
         </div>
 
         <!-- Player Page -->
@@ -55,27 +74,6 @@
                     <h3>Task Details</h3>
                     <p>You have reached the task location!</p>
                 </div>
-            </div>
-        </div>
-
-        <!-- Leader Page -->
-        <div id="leader-page" class="page">
-            <div id="password-setup" style="display: none;">
-                <h2>Set Leader Password</h2>
-                <input id="new-password" type="password" placeholder="Enter New Password">
-                <button onclick="savePassword()">Save Password</button>
-            </div>
-            <div id="password-input" style="display: none;">
-                <h2>Enter Leader Password</h2>
-                <input id="existing-password" type="password" placeholder="Enter Password">
-                <button onclick="validatePassword()">Login</button>
-            </div>
-            <div id="leader-content" style="display: none;">
-                <h2>Leader Dashboard</h2>
-                <button onclick="navigateTo('create-task-page')">Create Tasks</button>
-                <button onclick="navigateTo('view-current-task-page')">View Current Tasks</button>
-                <button onclick="navigateTo('points-page')">View Points</button>
-                <button onclick="resetGame()">Reset Game</button>
             </div>
         </div>
 
@@ -134,6 +132,6 @@
     </div>
 
     <!-- JavaScript -->
-    <script src="app.js"></script> <!-- Link to your JavaScript file -->
+    <script type="module" src="/app.js"></script>
 </body>
 </html>
