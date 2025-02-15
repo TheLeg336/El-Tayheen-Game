@@ -564,3 +564,4 @@ document.addEventListener('DOMContentLoaded', async () => {
         hideSplashScreen(); // Still hide the splash screen even if there's an error
     }
 });
+}
