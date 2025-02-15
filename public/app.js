@@ -1,4 +1,4 @@
-// Initialize Points in localStorage
+// Initialize Points in localStorage (optional, if you're still using local storage for some data)
 if (!localStorage.getItem('troop1-points')) {
     localStorage.setItem('troop1-points', 0);
 }
@@ -7,9 +7,10 @@ if (!localStorage.getItem('troop2-points')) {
 }
 
 // Global Variables
-let playerCoordinates = null;
-let taskCoordinates = null;
-let timerInterval = null;
+let playerCoordinates = null; // Current user location
+let taskCoordinates = null; // Target coordinates
+let currentHeading = 0; // Device's current heading (from gyroscope)
+let targetBearing = 0; // Bearing to the target coordinates
 
 // Function to handle navigation between pages
 function navigateTo(pageId) {
@@ -170,7 +171,7 @@ function validateTroopPassword() {
             startTimer(parseInt(activeTask.time));
 
             // Fetch player location and activate compass
-            fetchPlayerLocation(troopKey);
+            fetchPlayerLocation();
         }
     } else {
         alert('Incorrect password. Please try again.');
@@ -315,9 +316,6 @@ function initializePointsPage() {
 }
 
 // Gyroscope-based Compass Logic
-let currentHeading = 0; // Current device heading (in degrees)
-let targetBearing = 0; // Bearing to the target coordinates (in degrees)
-
 // Listen for device orientation events
 if (window.DeviceOrientationEvent) {
     window.addEventListener('deviceorientation', (event) => {
@@ -374,7 +372,7 @@ function updateCompassNeedleWithGyro() {
 }
 
 // Fetch Player Location
-function fetchPlayerLocation(troopKey) {
+function fetchPlayerLocation() {
     if (navigator.geolocation) {
         navigator.geolocation.watchPosition(
             (position) => {
