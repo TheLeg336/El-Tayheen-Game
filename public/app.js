@@ -1,8 +1,8 @@
-// Import Firebase SDK
+// Import Firebase SDK (if using Firebase)
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, onSnapshot } from "firebase/firestore";
+import { getFirestore, doc, onSnapshot, setDoc } from "firebase/firestore";
 
-// Initialize Firebase with your configuration
+// Initialize Firebase with your configuration (if using Firebase)
 const firebaseConfig = {
   apiKey: "AIzaSyDBDPjNAuc8ScJ2oqH4sISXQ1jZEdUnxTc",
   authDomain: "compassapp11.firebaseapp.com",
@@ -14,10 +14,10 @@ const firebaseConfig = {
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
 
-// Reference to the Firestore document
+// Reference to the Firestore document (if using Firebase)
 const gameDataRef = doc(db, "gameData", "tasks");
 
-// Listen for real-time updates
+// Listen for real-time updates (if using Firebase)
 onSnapshot(gameDataRef, (docSnap) => {
     if (docSnap.exists()) {
         const data = docSnap.data();
@@ -28,22 +28,25 @@ onSnapshot(gameDataRef, (docSnap) => {
     }
 });
 
-// Function to update the UI with real-time data
+// Function to update the UI with real-time data (if using Firebase)
 function updateUI(data) {
+    document.getElementById('troop1-points').textContent = data.points?.troop1 || 0;
+    document.getElementById('troop2-points').textContent = data.points?.troop2 || 0;
+
     // Example: Update task details
-    document.getElementById('task-description').textContent = data.taskDescription || 'No task available';
-    document.getElementById('points-troop1').textContent = data.points?.troop1 || 0;
-    document.getElementById('points-troop2').textContent = data.points?.troop2 || 0;
+    document.getElementById('troop1-task-description').textContent = data.troop1Task?.taskDescription || 'No active task.';
+    document.getElementById('troop2-task-description').textContent = data.troop2Task?.taskDescription || 'No active task.';
 }
 
-// Save data to Firestore
-async function saveData(newData) {
-    await fetch('/api/data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newData)
-    });
-    console.log('Data saved successfully!');
+// Save data to Firestore (if using Firebase)
+async function saveDataToFirestore(newData) {
+    try {
+        await setDoc(gameDataRef, newData, { merge: true });
+        console.log("Data saved to Firestore successfully!");
+    } catch (error) {
+        console.error("Error saving data to Firestore:", error);
+        alert("Failed to save data. Please try again later.");
+    }
 }
 
 // Initialize Points in localStorage (optional, if you're still using local storage for some data)
@@ -62,6 +65,7 @@ let targetBearing = 0; // Bearing to the target coordinates
 
 // Function to handle navigation between pages
 function navigateTo(pageId) {
+    console.log(`Navigating to: ${pageId}`);
     // Hide all pages
     document.querySelectorAll('.page').forEach(page => {
         page.classList.remove('active');
@@ -281,7 +285,7 @@ function saveTask(troopKey) {
         return;
     }
 
-    // Save task details to Firestore
+    // Save task details to localStorage
     const taskData = {
         taskDescription,
         submissionDetails,
@@ -290,7 +294,7 @@ function saveTask(troopKey) {
         latitude,
         longitude
     };
-    saveData(taskData); // Use Firestore API to save data
+    localStorage.setItem(`${troopKey}-task`, JSON.stringify(taskData));
     alert(`Task saved for ${localStorage.getItem(`${troopKey}Name`) || troopKey}`);
 
     // Navigate to the next troop's task page or show "Send Tasks" button
@@ -364,10 +368,13 @@ function initializePointsPage() {
 }
 
 // Gyroscope-based Compass Logic
+// Listen for device orientation events
 if (window.DeviceOrientationEvent) {
     window.addEventListener('deviceorientation', (event) => {
+        // Get the device's heading (alpha) relative to magnetic north
         if (event.alpha !== null) {
             currentHeading = event.alpha; // Alpha ranges from 0 to 360 degrees
+            // Update the compass needle
             updateCompassNeedleWithGyro();
         }
     });
@@ -477,7 +484,6 @@ function checkProximity() {
 function startTimer(durationMinutes) {
     let timeLeft = durationMinutes * 60; // Convert minutes to seconds
     const timerElement = document.getElementById('timer');
-
     timerInterval = setInterval(() => {
         const minutes = Math.floor(timeLeft / 60);
         const seconds = timeLeft % 60;
@@ -508,46 +514,6 @@ function resetGame() {
     } else {
         alert('Incorrect reset password. Access denied.');
     }
-}
-
-// Initialize Firebase Firestore Integration
-async function fetchGameData() {
-    try {
-        const docSnap = await getDoc(gameDataRef);
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            console.log("Fetched game data:", data);
-
-            // Update UI with fetched data
-            updateUI(data);
-        } else {
-            console.log("No game data found in Firestore.");
-        }
-    } catch (error) {
-        console.error("Error fetching game data:", error);
-        alert("Failed to load game data. Please try again later.");
-    }
-}
-
-// Save Data to Firestore
-async function saveDataToFirestore(newData) {
-    try {
-        await setDoc(gameDataRef, newData);
-        console.log("Data saved to Firestore successfully!");
-    } catch (error) {
-        console.error("Error saving data to Firestore:", error);
-        alert("Failed to save data. Please try again later.");
-    }
-}
-
-// Update UI with Real-Time Data
-function updateUI(data) {
-    // Example: Update task details
-    document.getElementById('task-description').textContent = data.taskDescription || 'No task available';
-    document.getElementById('points-troop1').textContent = data.points?.troop1 || 0;
-    document.getElementById('points-troop2').textContent = data.points?.troop2 || 0;
-
-    // Additional updates for other elements can be added here
 }
 
 // Handle Camera Functionality
