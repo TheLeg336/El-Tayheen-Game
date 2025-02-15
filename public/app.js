@@ -14,6 +14,9 @@ const firebaseConfig = {
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
 
+// Reference to the Firestore document
+const gameDataRef = doc(db, "gameData", "tasks");
+
 // Test Firestore Connection
 const testFirestoreConnection = async () => {
     try {
@@ -24,48 +27,14 @@ const testFirestoreConnection = async () => {
         console.error("Firestore connection error:", error);
     }
 };
-
-// Run the test in the background
 testFirestoreConnection();
-
-// Reference to the Firestore document
-const gameDataRef = doc(db, "gameData", "tasks");
-
-// Listen for real-time updates
-onSnapshot(gameDataRef, (docSnap) => {
-    if (docSnap.exists()) {
-        const data = docSnap.data();
-        console.log("Real-time data update:", data);
-        // Update the UI with the latest data
-        updateUI(data);
-    }
-});
-
-// Function to update the UI with real-time data
-function updateUI(data) {
-    document.getElementById('troop1-points').textContent = data.points?.troop1 || 0;
-    document.getElementById('troop2-points').textContent = data.points?.troop2 || 0;
-    // Example: Update task details
-    document.getElementById('troop1-task-description').textContent = data.troop1Task?.taskDescription || 'No active task.';
-    document.getElementById('troop2-task-description').textContent = data.troop2Task?.taskDescription || 'No active task.';
-}
-
-// Save data to Firestore
-async function saveDataToFirestore(newData) {
-    try {
-        await setDoc(gameDataRef, newData, { merge: true });
-        console.log("Data saved to Firestore successfully!");
-    } catch (error) {
-        console.error("Error saving data to Firestore:", error);
-        alert("Failed to save data. Please try again later.");
-    }
-}
 
 // Global Variables
 let playerCoordinates = null; // Current user location
 let taskCoordinates = null; // Target coordinates
 let currentHeading = 0; // Device's current heading (from gyroscope)
 let targetBearing = 0; // Bearing to the target coordinates
+let timerInterval = null;
 
 // Function to handle navigation between pages
 function navigateTo(pageId) {
@@ -81,6 +50,7 @@ function navigateTo(pageId) {
     } else {
         console.error(`Page with ID "${pageId}" not found.`);
     }
+
     // Handle specific page logic
     if (pageId === 'leader-page') {
         initializeLeaderPage();
@@ -139,13 +109,16 @@ function initializePlayerPage() {
     const troopSetup = document.getElementById('troop-setup');
     const troopLogin = document.getElementById('troop-login');
     const troopContent = document.getElementById('troop-content');
+
     // Reset visibility
     troopSelection.style.display = 'block';
     troopSetup.style.display = 'none';
     troopLogin.style.display = 'none';
     troopContent.style.display = 'none';
+
     // Clear any previously selected troop
     localStorage.removeItem('selectedTroop');
+
     // Fetch troop names from Firestore
     onSnapshot(gameDataRef, (docSnap) => {
         if (docSnap.exists()) {
@@ -211,6 +184,7 @@ function validateTroopPassword() {
                 document.getElementById('troop-display-name').textContent = `Welcome to ${troopName}`;
                 document.getElementById('troop-login').style.display = 'none';
                 document.getElementById('troop-content').style.display = 'block';
+
                 // Load active task for the troop
                 const activeTask = data[`active-${troopKey}-task`];
                 if (activeTask) {
@@ -281,11 +255,13 @@ function saveTask(troopKey) {
     const rewardDetails = document.getElementById('reward-details').value;
     const latitude = document.getElementById(`latitude-${troopKey}`).value;
     const longitude = document.getElementById(`longitude-${troopKey}`).value;
+
     // Validate inputs
     if (!taskDescription || !submissionDetails || !time || !rewardDetails || !latitude || !longitude) {
         alert('All fields are required!');
         return;
     }
+
     // Save task details to Firestore
     const taskData = {
         taskDescription,
@@ -440,8 +416,6 @@ function fetchPlayerLocation() {
                     latitude: position.coords.latitude,
                     longitude: position.coords.longitude
                 };
-                console.log("Player location fetched:", playerCoordinates);
-
                 // Update compass and check proximity
                 if (taskCoordinates) {
                     updateCompassNeedleWithGyro(); // Update needle with gyroscope data
@@ -526,58 +500,13 @@ function resetGame() {
     }
 }
 
-// Document Ready Listener
-document.addEventListener('DOMContentLoaded', async () => {
+// Save Data to Firestore
+async function saveDataToFirestore(newData) {
     try {
-        // Test Firestore connection
-        await testFirestoreConnection();
-
-        // Request geolocation permission
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    playerCoordinates = {
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude
-                    };
-                    console.log("Player location fetched:", playerCoordinates);
-                },
-                (error) => {
-                    console.error("Error fetching location:", error.message);
-                    alert("Failed to fetch location. Please enable geolocation.");
-                }
-            );
-        } else {
-            console.error("Geolocation is not supported by this browser.");
-            alert("Geolocation is not supported by your browser.");
-        }
-
-        // Request device orientation permission
-        if (window.DeviceOrientationEvent) {
-            window.addEventListener('deviceorientation', (event) => {
-                if (event.alpha !== null) {
-                    currentHeading = event.alpha; // Alpha ranges from 0 to 360 degrees
-                    updateCompassNeedleWithGyro();
-                }
-            });
-        } else {
-            alert('Device orientation is not supported by this browser.');
-        }
-
-        // Fetch initial data from Firestore
-        onSnapshot(gameDataRef, (docSnap) => {
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                console.log("Initial data loaded:", data);
-                updateUI(data);
-            }
-        });
-
-        // Navigate directly to the role selection screen
-        navigateTo('player-page');
-
+        await setDoc(gameDataRef, newData, { merge: true });
+        console.log("Data saved to Firestore successfully!");
     } catch (error) {
-        console.error("Error during initialization:", error);
-        alert("Failed to initialize the app. Please check the console for details.");
+        console.error("Error saving data to Firestore:", error);
+        alert("Failed to save data. Please try again later.");
     }
-});
+}
