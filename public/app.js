@@ -106,15 +106,23 @@ function savePassword() {
 // Validate Leader Password
 function validatePassword() {
     const enteredPassword = document.getElementById('existing-password').value;
-    const savedPassword = localStorage.getItem('leaderPassword');
-    if (enteredPassword === savedPassword) {
-        // Password correct, show leader content
-        document.getElementById('password-setup').style.display = 'none';
-        document.getElementById('password-input').style.display = 'none';
-        document.getElementById('leader-content').style.display = 'block';
-    } else {
-        alert('Incorrect password. Please try again.');
-    }
+
+    // Fetch the leader password from Firestore
+    onSnapshot(gameDataRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            const savedPassword = data.leaderPassword;
+
+            if (enteredPassword === savedPassword) {
+                // Password correct, show leader content
+                document.getElementById('password-setup').style.display = 'none';
+                document.getElementById('password-input').style.display = 'none';
+                document.getElementById('leader-content').style.display = 'block';
+            } else {
+                alert('Incorrect password. Please try again.');
+            }
+        }
+    });
 }
 
 // Player Page Logic
@@ -133,29 +141,40 @@ function initializePlayerPage() {
     // Clear any previously selected troop
     localStorage.removeItem('selectedTroop');
 
-    // Update troop names in the selection screen
-    const troop1Name = localStorage.getItem('troop1Name') || 'Troop 1';
-    const troop2Name = localStorage.getItem('troop2Name') || 'Troop 2';
+    // Fetch troop names from Firestore
+    onSnapshot(gameDataRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            const troop1Name = data.troop1Name || 'Troop 1';
+            const troop2Name = data.troop2Name || 'Troop 2';
 
-    document.querySelector('#troop-selection button:nth-child(1)').textContent = troop1Name;
-    document.querySelector('#troop-selection button:nth-child(2)').textContent = troop2Name;
+            document.querySelector('#troop-selection button:nth-child(1)').textContent = troop1Name;
+            document.querySelector('#troop-selection button:nth-child(2)').textContent = troop2Name;
+        }
+    });
 }
 
 // Select Troop
 function selectTroop(troopKey) {
     localStorage.setItem('selectedTroop', troopKey);
-    const troopName = localStorage.getItem(`${troopKey}Name`);
-    const troopPassword = localStorage.getItem(`${troopKey}Password`);
 
-    if (troopPassword) {
-        // Troop already has a password, show login
-        document.getElementById('troop-selection').style.display = 'none';
-        document.getElementById('troop-login').style.display = 'block';
-    } else {
-        // Troop does not have a password, show setup
-        document.getElementById('troop-selection').style.display = 'none';
-        document.getElementById('troop-setup').style.display = 'block';
-    }
+    // Fetch troop data from Firestore
+    onSnapshot(gameDataRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            const troopPassword = data[`${troopKey}Password`];
+
+            if (troopPassword) {
+                // Troop already has a password, show login
+                document.getElementById('troop-selection').style.display = 'none';
+                document.getElementById('troop-login').style.display = 'block';
+            } else {
+                // Troop does not have a password, show setup
+                document.getElementById('troop-selection').style.display = 'none';
+                document.getElementById('troop-setup').style.display = 'block';
+            }
+        }
+    });
 }
 
 // Save Troop Name and Password
@@ -179,46 +198,58 @@ function saveTroop() {
 // Validate Troop Password
 function validateTroopPassword() {
     const troopKey = localStorage.getItem('selectedTroop');
-    const troopPassword = localStorage.getItem(`${troopKey}Password`);
     const enteredPassword = document.getElementById('troop-login-password').value;
 
-    if (enteredPassword === troopPassword) {
-        // Password correct, show troop content
-        const troopName = localStorage.getItem(`${troopKey}Name`);
-        document.getElementById('troop-display-name').textContent = `Welcome to ${troopName}`;
-        document.getElementById('troop-login').style.display = 'none';
-        document.getElementById('troop-content').style.display = 'block';
+    // Fetch troop data from Firestore
+    onSnapshot(gameDataRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            const troopPassword = data[`${troopKey}Password`];
+            const troopName = data[`${troopKey}Name`];
 
-        // Load active task for the troop
-        const activeTask = JSON.parse(localStorage.getItem(`active-${troopKey}-task`));
-        if (activeTask) {
-            taskCoordinates = {
-                latitude: parseFloat(activeTask.latitude),
-                longitude: parseFloat(activeTask.longitude)
-            };
+            if (enteredPassword === troopPassword) {
+                // Password correct, show troop content
+                document.getElementById('troop-display-name').textContent = `Welcome to ${troopName}`;
+                document.getElementById('troop-login').style.display = 'none';
+                document.getElementById('troop-content').style.display = 'block';
 
-            // Display task details and start timer
-            document.getElementById('task-description-player').textContent = activeTask.taskDescription;
-            document.getElementById('submission-details-player').textContent = activeTask.submissionDetails;
+                // Load active task for the troop
+                const activeTask = data[`active-${troopKey}-task`];
+                if (activeTask) {
+                    taskCoordinates = {
+                        latitude: parseFloat(activeTask.latitude),
+                        longitude: parseFloat(activeTask.longitude)
+                    };
 
-            // Start timer
-            startTimer(parseInt(activeTask.time));
+                    // Display task details and start timer
+                    document.getElementById('task-description-player').textContent = activeTask.taskDescription;
+                    document.getElementById('submission-details-player').textContent = activeTask.submissionDetails;
 
-            // Fetch player location and activate compass
-            fetchPlayerLocation();
+                    // Start timer
+                    startTimer(parseInt(activeTask.time));
+
+                    // Fetch player location and activate compass
+                    fetchPlayerLocation();
+                }
+            } else {
+                alert('Incorrect password. Please try again.');
+            }
         }
-    } else {
-        alert('Incorrect password. Please try again.');
-    }
+    });
 }
 
 // Update Create Task Buttons
 function updateCreateTaskButtons() {
-    const troop1Name = localStorage.getItem('troop1Name') || 'Troop 1';
-    const troop2Name = localStorage.getItem('troop2Name') || 'Troop 2';
+    onSnapshot(gameDataRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            const troop1Name = data.troop1Name || 'Troop 1';
+            const troop2Name = data.troop2Name || 'Troop 2';
 
-    document.getElementById('troop1-task-button').textContent = troop1Name;
-    document.getElementById('troop2-task-button').textContent = troop2Name;
+            document.getElementById('troop1-task-button').textContent = troop1Name;
+            document.getElementById('troop2-task-button').textContent = troop2Name;
+        }
+    });
 }
 
 // Extract Coordinates Using Geolocation
@@ -275,12 +306,12 @@ function saveTask(troopKey) {
         longitude
     };
     saveDataToFirestore({ [`${troopKey}-task`]: taskData });
-    alert(`Task saved for ${localStorage.getItem(`${troopKey}Name`) || troopKey}`);
+    alert(`Task saved for ${troopKey}`);
 
     // Navigate to the next troop's task page or show "Send Tasks" button
-    if (troopKey === 'troop1' && !localStorage.getItem('troop2-task')) {
+    if (troopKey === 'troop1' && !document.getElementById('troop2-task')) {
         navigateTo('troop2-task-page');
-    } else if (troopKey === 'troop2' && !localStorage.getItem('troop1-task')) {
+    } else if (troopKey === 'troop2' && !document.getElementById('troop1-task')) {
         navigateTo('troop1-task-page');
     } else {
         // Both tasks are created, show "Send Tasks" button
@@ -295,57 +326,79 @@ function saveTask(troopKey) {
 
 // Send Tasks Button Logic
 function sendTasks() {
-    const troop1Task = JSON.parse(localStorage.getItem('troop1-task'));
-    const troop2Task = JSON.parse(localStorage.getItem('troop2-task'));
+    onSnapshot(gameDataRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            const troop1Task = data['troop1-task'];
+            const troop2Task = data['troop2-task'];
 
-    if (!troop1Task || !troop2Task) {
-        alert('Tasks must be created for both troops before sending.');
-        return;
-    }
+            if (!troop1Task || !troop2Task) {
+                alert('Tasks must be created for both troops before sending.');
+                return;
+            }
 
-    // Assign tasks to troops in Firestore
-    saveDataToFirestore({
-        'active-troop1-task': troop1Task,
-        'active-troop2-task': troop2Task
+            // Assign tasks to troops in Firestore
+            saveDataToFirestore({
+                'active-troop1-task': troop1Task,
+                'active-troop2-task': troop2Task
+            });
+            alert('Tasks sent successfully! Players can now access their tasks.');
+            navigateTo('leader-page');
+        }
     });
-    alert('Tasks sent successfully! Players can now access their tasks.');
-    navigateTo('leader-page');
 }
 
 // View Current Task Page Logic
 function initializeViewCurrentTaskPage() {
-    const troop1Task = JSON.parse(localStorage.getItem('active-troop1-task'));
-    const troop2Task = JSON.parse(localStorage.getItem('active-troop2-task'));
+    onSnapshot(gameDataRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            const troop1Task = data['active-troop1-task'];
+            const troop2Task = data['active-troop2-task'];
 
-    if (troop1Task) {
-        document.getElementById('troop1-task-description').textContent = troop1Task.taskDescription;
-    } else {
-        document.getElementById('troop1-task-description').textContent = 'No active task.';
-    }
+            if (troop1Task) {
+                document.getElementById('troop1-task-description').textContent = troop1Task.taskDescription;
+            } else {
+                document.getElementById('troop1-task-description').textContent = 'No active task.';
+            }
 
-    if (troop2Task) {
-        document.getElementById('troop2-task-description').textContent = troop2Task.taskDescription;
-    } else {
-        document.getElementById('troop2-task-description').textContent = 'No active task.';
-    }
+            if (troop2Task) {
+                document.getElementById('troop2-task-description').textContent = troop2Task.taskDescription;
+            } else {
+                document.getElementById('troop2-task-description').textContent = 'No active task.';
+            }
+        }
+    });
 }
 
 // Declare Winner and Update Points
 function declareWinner(winningTroop) {
-    let winningTroopPoints = parseInt(localStorage.getItem(`${winningTroop}-points`)) || 0;
-    winningTroopPoints += 1; // Increment points for the winning troop
-    saveDataToFirestore({ [`points.${winningTroop}`]: winningTroopPoints });
-    alert(`${winningTroop.toUpperCase()} has been declared the winner!`);
-    navigateTo('leader-page');
+    onSnapshot(gameDataRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            let winningTroopPoints = data.points?.[winningTroop] || 0;
+            winningTroopPoints += 1; // Increment points for the winning troop
+
+            // Update points in Firestore
+            saveDataToFirestore({ [`points.${winningTroop}`]: winningTroopPoints });
+            alert(`${winningTroop.toUpperCase()} has been declared the winner!`);
+            navigateTo('leader-page');
+        }
+    });
 }
 
 // Points Page Logic
 function initializePointsPage() {
-    const troop1Points = localStorage.getItem('troop1-points') || 0;
-    const troop2Points = localStorage.getItem('troop2-points') || 0;
+    onSnapshot(gameDataRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            const troop1Points = data.points?.troop1 || 0;
+            const troop2Points = data.points?.troop2 || 0;
 
-    document.getElementById('troop1-points').textContent = troop1Points;
-    document.getElementById('troop2-points').textContent = troop2Points;
+            document.getElementById('troop1-points').textContent = troop1Points;
+            document.getElementById('troop2-points').textContent = troop2Points;
+        }
+    });
 }
 
 // Gyroscope-based Compass Logic
@@ -480,15 +533,13 @@ function startTimer(durationMinutes) {
 function resetGame() {
     const resetPassword = prompt('Enter the reset password:');
     if (resetPassword === '2055108') {
-        // Clear all stored data in Firestore
-        saveDataToFirestore({
-            'troop1-points': 0,
-            'troop2-points': 0,
-            'troop1-task': null,
-            'troop2-task': null,
-            'active-troop1-task': null,
-            'active-troop2-task': null
-        });
+        // Clear all stored data
+        localStorage.clear();
+
+        // Reinitialize default points
+        localStorage.setItem('troop1-points', 0);
+        localStorage.setItem('troop2-points', 0);
+
         alert('Game reset successfully! All data has been cleared.');
         navigateTo('main-page');
     } else {
