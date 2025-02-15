@@ -69,7 +69,11 @@ function navigateTo(pageId) {
 
     // Show the selected page
     const selectedPage = document.getElementById(pageId);
-    selectedPage.classList.add('active');
+    if (selectedPage) {
+        selectedPage.classList.add('active');
+    } else {
+        console.error(`Page with ID "${pageId}" not found.`);
+    }
 
     // Handle specific page logic
     if (pageId === 'leader-page') {
@@ -505,3 +509,156 @@ function resetGame() {
         alert('Incorrect reset password. Access denied.');
     }
 }
+
+// Initialize Firebase Firestore Integration
+async function fetchGameData() {
+    try {
+        const docSnap = await getDoc(gameDataRef);
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            console.log("Fetched game data:", data);
+
+            // Update UI with fetched data
+            updateUI(data);
+        } else {
+            console.log("No game data found in Firestore.");
+        }
+    } catch (error) {
+        console.error("Error fetching game data:", error);
+        alert("Failed to load game data. Please try again later.");
+    }
+}
+
+// Save Data to Firestore
+async function saveDataToFirestore(newData) {
+    try {
+        await setDoc(gameDataRef, newData);
+        console.log("Data saved to Firestore successfully!");
+    } catch (error) {
+        console.error("Error saving data to Firestore:", error);
+        alert("Failed to save data. Please try again later.");
+    }
+}
+
+// Update UI with Real-Time Data
+function updateUI(data) {
+    // Example: Update task details
+    document.getElementById('task-description').textContent = data.taskDescription || 'No task available';
+    document.getElementById('points-troop1').textContent = data.points?.troop1 || 0;
+    document.getElementById('points-troop2').textContent = data.points?.troop2 || 0;
+
+    // Additional updates for other elements can be added here
+}
+
+// Handle Camera Functionality
+let cameraStream = null;
+async function startCamera() {
+    try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const cameraFeed = document.getElementById('camera-feed');
+        cameraFeed.srcObject = cameraStream;
+        cameraFeed.play();
+    } catch (error) {
+        console.error("Error accessing camera:", error);
+        alert("Failed to access the camera. Please ensure permissions are granted.");
+    }
+}
+
+function stopCamera() {
+    if (cameraStream) {
+        const tracks = cameraStream.getTracks();
+        tracks.forEach(track => track.stop());
+        cameraStream = null;
+        const cameraFeed = document.getElementById('camera-feed');
+        cameraFeed.srcObject = null;
+    }
+}
+
+// Capture Photo from Camera
+function capturePhoto() {
+    const cameraFeed = document.getElementById('camera-feed');
+    const photoCanvas = document.getElementById('photo-canvas');
+    const context = photoCanvas.getContext('2d');
+
+    // Set canvas dimensions to match the video feed
+    photoCanvas.width = cameraFeed.videoWidth;
+    photoCanvas.height = cameraFeed.videoHeight;
+
+    // Draw the current frame onto the canvas
+    context.drawImage(cameraFeed, 0, 0, photoCanvas.width, photoCanvas.height);
+
+    // Optionally, save the photo as a data URL or upload it
+    const photoDataUrl = photoCanvas.toDataURL('image/png');
+    console.log("Captured photo:", photoDataUrl);
+
+    // Display the captured photo in the UI
+    const photoPreview = document.getElementById('photo-preview');
+    photoPreview.src = photoDataUrl;
+    photoPreview.style.display = 'block';
+}
+
+// Submit Task Submission
+function submitTaskSubmission() {
+    const troopKey = localStorage.getItem('selectedTroop');
+    const submissionDetails = document.getElementById('submission-text').value;
+    const photoDataUrl = document.getElementById('photo-preview').src;
+
+    if (!submissionDetails || !photoDataUrl) {
+        alert('Please provide both submission details and a photo.');
+        return;
+    }
+
+    // Save submission to Firestore
+    const submissionData = {
+        troopKey,
+        submissionDetails,
+        photoDataUrl,
+        timestamp: new Date().toISOString()
+    };
+
+    saveDataToFirestore(submissionData);
+    alert('Task submission successful!');
+    navigateTo('troop-content');
+}
+
+// Load Submissions for Review
+async function loadSubmissions() {
+    try {
+        const docSnap = await getDoc(gameDataRef);
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            const submissions = data.submissions || [];
+
+            const submissionsContainer = document.getElementById('submissions-container');
+            submissionsContainer.innerHTML = ''; // Clear existing submissions
+
+            submissions.forEach(submission => {
+                const submissionItem = document.createElement('div');
+                submissionItem.classList.add('submission-item');
+
+                submissionItem.innerHTML = `
+                    <p><strong>Troop:</strong> ${submission.troopKey}</p>
+                    <p><strong>Details:</strong> ${submission.submissionDetails}</p>
+                    <img src="${submission.photoDataUrl}" alt="Submission Photo" class="submission-photo">
+                    <p class="timestamp">${new Date(submission.timestamp).toLocaleString()}</p>
+                `;
+
+                submissionsContainer.appendChild(submissionItem);
+            });
+        } else {
+            console.log("No submissions found in Firestore.");
+        }
+    } catch (error) {
+        console.error("Error loading submissions:", error);
+        alert("Failed to load submissions. Please try again later.");
+    }
+}
+
+// Initialize App on Page Load
+document.addEventListener('DOMContentLoaded', () => {
+    // Fetch initial game data from Firestore
+    fetchGameData();
+
+    // Initialize navigation to the main page
+    navigateTo('main-page');
+});
