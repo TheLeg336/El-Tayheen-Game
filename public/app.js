@@ -1,3 +1,51 @@
+// Import Firebase SDK
+import { initializeApp } from "firebase/app";
+import { getFirestore, doc, onSnapshot } from "firebase/firestore";
+
+// Initialize Firebase with your configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyDBDPjNAuc8ScJ2oqH4sISXQ1jZEdUnxTc",
+  authDomain: "compassapp11.firebaseapp.com",
+  projectId: "compassapp11",
+  storageBucket: "compassapp11.firebasestorage.app",
+  messagingSenderId: "223152942317",
+  appId: "1:223152942317:web:37cbeadf1fb4b34ad130e4"
+};
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
+
+// Reference to the Firestore document
+const gameDataRef = doc(db, "gameData", "tasks");
+
+// Listen for real-time updates
+onSnapshot(gameDataRef, (docSnap) => {
+    if (docSnap.exists()) {
+        const data = docSnap.data();
+        console.log("Real-time data update:", data);
+
+        // Update the UI with the latest data
+        updateUI(data);
+    }
+});
+
+// Function to update the UI with real-time data
+function updateUI(data) {
+    // Example: Update task details
+    document.getElementById('task-description').textContent = data.taskDescription || 'No task available';
+    document.getElementById('points-troop1').textContent = data.points?.troop1 || 0;
+    document.getElementById('points-troop2').textContent = data.points?.troop2 || 0;
+}
+
+// Save data to Firestore
+async function saveData(newData) {
+    await fetch('/api/data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newData)
+    });
+    console.log('Data saved successfully!');
+}
+
 // Initialize Points in localStorage (optional, if you're still using local storage for some data)
 if (!localStorage.getItem('troop1-points')) {
     localStorage.setItem('troop1-points', 0);
@@ -73,7 +121,6 @@ function savePassword() {
 function validatePassword() {
     const enteredPassword = document.getElementById('existing-password').value;
     const savedPassword = localStorage.getItem('leaderPassword');
-
     if (enteredPassword === savedPassword) {
         // Password correct, show leader content
         document.getElementById('password-setup').style.display = 'none';
@@ -111,7 +158,6 @@ function initializePlayerPage() {
 // Select Troop
 function selectTroop(troopKey) {
     localStorage.setItem('selectedTroop', troopKey);
-
     const troopName = localStorage.getItem(`${troopKey}Name`);
     const troopPassword = localStorage.getItem(`${troopKey}Password`);
 
@@ -231,7 +277,7 @@ function saveTask(troopKey) {
         return;
     }
 
-    // Save task details to localStorage
+    // Save task details to Firestore
     const taskData = {
         taskDescription,
         submissionDetails,
@@ -240,8 +286,7 @@ function saveTask(troopKey) {
         latitude,
         longitude
     };
-    localStorage.setItem(`${troopKey}-task`, JSON.stringify(taskData));
-
+    saveData(taskData); // Use Firestore API to save data
     alert(`Task saved for ${localStorage.getItem(`${troopKey}Name`) || troopKey}`);
 
     // Navigate to the next troop's task page or show "Send Tasks" button
@@ -301,7 +346,6 @@ function declareWinner(winningTroop) {
     let winningTroopPoints = parseInt(localStorage.getItem(`${winningTroop}-points`)) || 0;
     winningTroopPoints += 1; // Increment points for the winning troop
     localStorage.setItem(`${winningTroop}-points`, winningTroopPoints);
-
     alert(`${winningTroop.toUpperCase()} has been declared the winner!`);
     navigateTo('leader-page');
 }
@@ -316,14 +360,10 @@ function initializePointsPage() {
 }
 
 // Gyroscope-based Compass Logic
-// Listen for device orientation events
 if (window.DeviceOrientationEvent) {
     window.addEventListener('deviceorientation', (event) => {
-        // Get the device's heading (alpha) relative to magnetic north
         if (event.alpha !== null) {
             currentHeading = event.alpha; // Alpha ranges from 0 to 360 degrees
-
-            // Update the compass needle
             updateCompassNeedleWithGyro();
         }
     });
