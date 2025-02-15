@@ -1,54 +1,3 @@
-// Import Firebase SDK (if using Firebase)
-import { initializeApp } from "firebase/app";
-import { getFirestore, doc, onSnapshot, setDoc } from "firebase/firestore";
-
-// Initialize Firebase with your configuration (if using Firebase)
-const firebaseConfig = {
-  apiKey: "AIzaSyDBDPjNAuc8ScJ2oqH4sISXQ1jZEdUnxTc",
-  authDomain: "compassapp11.firebaseapp.com",
-  projectId: "compassapp11",
-  storageBucket: "compassapp11.firebasestorage.app",
-  messagingSenderId: "223152942317",
-  appId: "1:223152942317:web:37cbeadf1fb4b34ad130e4"
-};
-const firebaseApp = initializeApp(firebaseConfig);
-const db = getFirestore(firebaseApp);
-
-// Reference to the Firestore document (if using Firebase)
-const gameDataRef = doc(db, "gameData", "tasks");
-
-// Listen for real-time updates (if using Firebase)
-onSnapshot(gameDataRef, (docSnap) => {
-    if (docSnap.exists()) {
-        const data = docSnap.data();
-        console.log("Real-time data update:", data);
-
-        // Update the UI with the latest data
-        updateUI(data);
-    }
-});
-
-// Function to update the UI with real-time data (if using Firebase)
-function updateUI(data) {
-    document.getElementById('troop1-points').textContent = data.points?.troop1 || 0;
-    document.getElementById('troop2-points').textContent = data.points?.troop2 || 0;
-
-    // Example: Update task details
-    document.getElementById('troop1-task-description').textContent = data.troop1Task?.taskDescription || 'No active task.';
-    document.getElementById('troop2-task-description').textContent = data.troop2Task?.taskDescription || 'No active task.';
-}
-
-// Save data to Firestore (if using Firebase)
-async function saveDataToFirestore(newData) {
-    try {
-        await setDoc(gameDataRef, newData, { merge: true });
-        console.log("Data saved to Firestore successfully!");
-    } catch (error) {
-        console.error("Error saving data to Firestore:", error);
-        alert("Failed to save data. Please try again later.");
-    }
-}
-
 // Initialize Points in localStorage (optional, if you're still using local storage for some data)
 if (!localStorage.getItem('troop1-points')) {
     localStorage.setItem('troop1-points', 0);
@@ -65,7 +14,6 @@ let targetBearing = 0; // Bearing to the target coordinates
 
 // Function to handle navigation between pages
 function navigateTo(pageId) {
-    console.log(`Navigating to: ${pageId}`);
     // Hide all pages
     document.querySelectorAll('.page').forEach(page => {
         page.classList.remove('active');
@@ -73,11 +21,7 @@ function navigateTo(pageId) {
 
     // Show the selected page
     const selectedPage = document.getElementById(pageId);
-    if (selectedPage) {
-        selectedPage.classList.add('active');
-    } else {
-        console.error(`Page with ID "${pageId}" not found.`);
-    }
+    selectedPage.classList.add('active');
 
     // Handle specific page logic
     if (pageId === 'leader-page') {
@@ -129,6 +73,7 @@ function savePassword() {
 function validatePassword() {
     const enteredPassword = document.getElementById('existing-password').value;
     const savedPassword = localStorage.getItem('leaderPassword');
+
     if (enteredPassword === savedPassword) {
         // Password correct, show leader content
         document.getElementById('password-setup').style.display = 'none';
@@ -166,6 +111,7 @@ function initializePlayerPage() {
 // Select Troop
 function selectTroop(troopKey) {
     localStorage.setItem('selectedTroop', troopKey);
+
     const troopName = localStorage.getItem(`${troopKey}Name`);
     const troopPassword = localStorage.getItem(`${troopKey}Password`);
 
@@ -295,6 +241,7 @@ function saveTask(troopKey) {
         longitude
     };
     localStorage.setItem(`${troopKey}-task`, JSON.stringify(taskData));
+
     alert(`Task saved for ${localStorage.getItem(`${troopKey}Name`) || troopKey}`);
 
     // Navigate to the next troop's task page or show "Send Tasks" button
@@ -354,6 +301,7 @@ function declareWinner(winningTroop) {
     let winningTroopPoints = parseInt(localStorage.getItem(`${winningTroop}-points`)) || 0;
     winningTroopPoints += 1; // Increment points for the winning troop
     localStorage.setItem(`${winningTroop}-points`, winningTroopPoints);
+
     alert(`${winningTroop.toUpperCase()} has been declared the winner!`);
     navigateTo('leader-page');
 }
@@ -374,6 +322,7 @@ if (window.DeviceOrientationEvent) {
         // Get the device's heading (alpha) relative to magnetic north
         if (event.alpha !== null) {
             currentHeading = event.alpha; // Alpha ranges from 0 to 360 degrees
+
             // Update the compass needle
             updateCompassNeedleWithGyro();
         }
@@ -484,6 +433,7 @@ function checkProximity() {
 function startTimer(durationMinutes) {
     let timeLeft = durationMinutes * 60; // Convert minutes to seconds
     const timerElement = document.getElementById('timer');
+
     timerInterval = setInterval(() => {
         const minutes = Math.floor(timeLeft / 60);
         const seconds = timeLeft % 60;
@@ -515,116 +465,3 @@ function resetGame() {
         alert('Incorrect reset password. Access denied.');
     }
 }
-
-// Handle Camera Functionality
-let cameraStream = null;
-async function startCamera() {
-    try {
-        cameraStream = await navigator.mediaDevices.getUserMedia({ video: true });
-        const cameraFeed = document.getElementById('camera-feed');
-        cameraFeed.srcObject = cameraStream;
-        cameraFeed.play();
-    } catch (error) {
-        console.error("Error accessing camera:", error);
-        alert("Failed to access the camera. Please ensure permissions are granted.");
-    }
-}
-
-function stopCamera() {
-    if (cameraStream) {
-        const tracks = cameraStream.getTracks();
-        tracks.forEach(track => track.stop());
-        cameraStream = null;
-        const cameraFeed = document.getElementById('camera-feed');
-        cameraFeed.srcObject = null;
-    }
-}
-
-// Capture Photo from Camera
-function capturePhoto() {
-    const cameraFeed = document.getElementById('camera-feed');
-    const photoCanvas = document.getElementById('photo-canvas');
-    const context = photoCanvas.getContext('2d');
-
-    // Set canvas dimensions to match the video feed
-    photoCanvas.width = cameraFeed.videoWidth;
-    photoCanvas.height = cameraFeed.videoHeight;
-
-    // Draw the current frame onto the canvas
-    context.drawImage(cameraFeed, 0, 0, photoCanvas.width, photoCanvas.height);
-
-    // Optionally, save the photo as a data URL or upload it
-    const photoDataUrl = photoCanvas.toDataURL('image/png');
-    console.log("Captured photo:", photoDataUrl);
-
-    // Display the captured photo in the UI
-    const photoPreview = document.getElementById('photo-preview');
-    photoPreview.src = photoDataUrl;
-    photoPreview.style.display = 'block';
-}
-
-// Submit Task Submission
-function submitTaskSubmission() {
-    const troopKey = localStorage.getItem('selectedTroop');
-    const submissionDetails = document.getElementById('submission-text').value;
-    const photoDataUrl = document.getElementById('photo-preview').src;
-
-    if (!submissionDetails || !photoDataUrl) {
-        alert('Please provide both submission details and a photo.');
-        return;
-    }
-
-    // Save submission to Firestore
-    const submissionData = {
-        troopKey,
-        submissionDetails,
-        photoDataUrl,
-        timestamp: new Date().toISOString()
-    };
-
-    saveDataToFirestore(submissionData);
-    alert('Task submission successful!');
-    navigateTo('troop-content');
-}
-
-// Load Submissions for Review
-async function loadSubmissions() {
-    try {
-        const docSnap = await getDoc(gameDataRef);
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            const submissions = data.submissions || [];
-
-            const submissionsContainer = document.getElementById('submissions-container');
-            submissionsContainer.innerHTML = ''; // Clear existing submissions
-
-            submissions.forEach(submission => {
-                const submissionItem = document.createElement('div');
-                submissionItem.classList.add('submission-item');
-
-                submissionItem.innerHTML = `
-                    <p><strong>Troop:</strong> ${submission.troopKey}</p>
-                    <p><strong>Details:</strong> ${submission.submissionDetails}</p>
-                    <img src="${submission.photoDataUrl}" alt="Submission Photo" class="submission-photo">
-                    <p class="timestamp">${new Date(submission.timestamp).toLocaleString()}</p>
-                `;
-
-                submissionsContainer.appendChild(submissionItem);
-            });
-        } else {
-            console.log("No submissions found in Firestore.");
-        }
-    } catch (error) {
-        console.error("Error loading submissions:", error);
-        alert("Failed to load submissions. Please try again later.");
-    }
-}
-
-// Initialize App on Page Load
-document.addEventListener('DOMContentLoaded', () => {
-    // Fetch initial game data from Firestore
-    fetchGameData();
-
-    // Initialize navigation to the main page
-    navigateTo('main-page');
-});
