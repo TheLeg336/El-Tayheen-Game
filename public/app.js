@@ -1,9 +1,52 @@
-// Initialize Points in localStorage (optional, if you're still using local storage for some data)
-if (!localStorage.getItem('troop1-points')) {
-    localStorage.setItem('troop1-points', 0);
+// Import Firebase SDK
+import { initializeApp } from "firebase/app";
+import { getFirestore, doc, onSnapshot, setDoc, updateDoc } from "firebase/firestore";
+
+// Initialize Firebase with your configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyDBDPjNAuc8ScJ2oqH4sISXQ1jZEdUnxTc",
+  authDomain: "compassapp11.firebaseapp.com",
+  projectId: "compassapp11",
+  storageBucket: "compassapp11.firebasestorage.app",
+  messagingSenderId: "223152942317",
+  appId: "1:223152942317:web:37cbeadf1fb4b34ad130e4"
+};
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
+
+// Reference to the Firestore document
+const gameDataRef = doc(db, "gameData", "tasks");
+
+// Listen for real-time updates
+onSnapshot(gameDataRef, (docSnap) => {
+    if (docSnap.exists()) {
+        const data = docSnap.data();
+        console.log("Real-time data update:", data);
+
+        // Update the UI with the latest data
+        updateUI(data);
+    }
+});
+
+// Function to update the UI with real-time data
+function updateUI(data) {
+    document.getElementById('troop1-points').textContent = data.points?.troop1 || 0;
+    document.getElementById('troop2-points').textContent = data.points?.troop2 || 0;
+
+    // Example: Update task details
+    document.getElementById('troop1-task-description').textContent = data.troop1Task?.taskDescription || 'No active task.';
+    document.getElementById('troop2-task-description').textContent = data.troop2Task?.taskDescription || 'No active task.';
 }
-if (!localStorage.getItem('troop2-points')) {
-    localStorage.setItem('troop2-points', 0);
+
+// Save data to Firestore
+async function saveDataToFirestore(newData) {
+    try {
+        await setDoc(gameDataRef, newData, { merge: true });
+        console.log("Data saved to Firestore successfully!");
+    } catch (error) {
+        console.error("Error saving data to Firestore:", error);
+        alert("Failed to save data. Please try again later.");
+    }
 }
 
 // Global Variables
@@ -14,6 +57,7 @@ let targetBearing = 0; // Bearing to the target coordinates
 
 // Function to handle navigation between pages
 function navigateTo(pageId) {
+    console.log(`Navigating to: ${pageId}`);
     // Hide all pages
     document.querySelectorAll('.page').forEach(page => {
         page.classList.remove('active');
@@ -21,7 +65,11 @@ function navigateTo(pageId) {
 
     // Show the selected page
     const selectedPage = document.getElementById(pageId);
-    selectedPage.classList.add('active');
+    if (selectedPage) {
+        selectedPage.classList.add('active');
+    } else {
+        console.error(`Page with ID "${pageId}" not found.`);
+    }
 
     // Handle specific page logic
     if (pageId === 'leader-page') {
@@ -39,29 +87,15 @@ function navigateTo(pageId) {
 
 // Leader Page Logic
 function initializeLeaderPage() {
-    const savedPassword = localStorage.getItem('leaderPassword');
-    const passwordSetup = document.getElementById('password-setup');
-    const passwordInput = document.getElementById('password-input');
     const leaderContent = document.getElementById('leader-content');
-
-    if (!savedPassword) {
-        // No password set, show password setup
-        passwordSetup.style.display = 'block';
-        passwordInput.style.display = 'none';
-        leaderContent.style.display = 'none';
-    } else {
-        // Password exists, show password input
-        passwordSetup.style.display = 'none';
-        passwordInput.style.display = 'block';
-        leaderContent.style.display = 'none';
-    }
+    leaderContent.style.display = 'block';
 }
 
 // Save Leader Password
 function savePassword() {
     const newPassword = document.getElementById('new-password').value;
     if (newPassword.trim()) {
-        localStorage.setItem('leaderPassword', newPassword);
+        saveDataToFirestore({ leaderPassword: newPassword });
         alert('Password saved successfully!');
         initializeLeaderPage(); // Reinitialize the leader page
     } else {
@@ -73,7 +107,6 @@ function savePassword() {
 function validatePassword() {
     const enteredPassword = document.getElementById('existing-password').value;
     const savedPassword = localStorage.getItem('leaderPassword');
-
     if (enteredPassword === savedPassword) {
         // Password correct, show leader content
         document.getElementById('password-setup').style.display = 'none';
@@ -111,7 +144,6 @@ function initializePlayerPage() {
 // Select Troop
 function selectTroop(troopKey) {
     localStorage.setItem('selectedTroop', troopKey);
-
     const troopName = localStorage.getItem(`${troopKey}Name`);
     const troopPassword = localStorage.getItem(`${troopKey}Password`);
 
@@ -133,8 +165,10 @@ function saveTroop() {
     const troopPassword = document.getElementById('troop-password').value;
 
     if (troopName.trim() && troopPassword.trim()) {
-        localStorage.setItem(`${troopKey}Name`, troopName);
-        localStorage.setItem(`${troopKey}Password`, troopPassword);
+        saveDataToFirestore({
+            [`${troopKey}Name`]: troopName,
+            [`${troopKey}Password`]: troopPassword
+        });
         alert('Troop saved successfully!');
         initializePlayerPage(); // Reinitialize the player page
     } else {
@@ -231,7 +265,7 @@ function saveTask(troopKey) {
         return;
     }
 
-    // Save task details to localStorage
+    // Save task details to Firestore
     const taskData = {
         taskDescription,
         submissionDetails,
@@ -240,8 +274,7 @@ function saveTask(troopKey) {
         latitude,
         longitude
     };
-    localStorage.setItem(`${troopKey}-task`, JSON.stringify(taskData));
-
+    saveDataToFirestore({ [`${troopKey}-task`]: taskData });
     alert(`Task saved for ${localStorage.getItem(`${troopKey}Name`) || troopKey}`);
 
     // Navigate to the next troop's task page or show "Send Tasks" button
@@ -270,10 +303,11 @@ function sendTasks() {
         return;
     }
 
-    // Assign tasks to troops
-    localStorage.setItem('active-troop1-task', JSON.stringify(troop1Task));
-    localStorage.setItem('active-troop2-task', JSON.stringify(troop2Task));
-
+    // Assign tasks to troops in Firestore
+    saveDataToFirestore({
+        'active-troop1-task': troop1Task,
+        'active-troop2-task': troop2Task
+    });
     alert('Tasks sent successfully! Players can now access their tasks.');
     navigateTo('leader-page');
 }
@@ -300,8 +334,7 @@ function initializeViewCurrentTaskPage() {
 function declareWinner(winningTroop) {
     let winningTroopPoints = parseInt(localStorage.getItem(`${winningTroop}-points`)) || 0;
     winningTroopPoints += 1; // Increment points for the winning troop
-    localStorage.setItem(`${winningTroop}-points`, winningTroopPoints);
-
+    saveDataToFirestore({ [`points.${winningTroop}`]: winningTroopPoints });
     alert(`${winningTroop.toUpperCase()} has been declared the winner!`);
     navigateTo('leader-page');
 }
@@ -316,14 +349,10 @@ function initializePointsPage() {
 }
 
 // Gyroscope-based Compass Logic
-// Listen for device orientation events
 if (window.DeviceOrientationEvent) {
     window.addEventListener('deviceorientation', (event) => {
-        // Get the device's heading (alpha) relative to magnetic north
         if (event.alpha !== null) {
             currentHeading = event.alpha; // Alpha ranges from 0 to 360 degrees
-
-            // Update the compass needle
             updateCompassNeedleWithGyro();
         }
     });
@@ -433,7 +462,6 @@ function checkProximity() {
 function startTimer(durationMinutes) {
     let timeLeft = durationMinutes * 60; // Convert minutes to seconds
     const timerElement = document.getElementById('timer');
-
     timerInterval = setInterval(() => {
         const minutes = Math.floor(timeLeft / 60);
         const seconds = timeLeft % 60;
@@ -452,13 +480,15 @@ function startTimer(durationMinutes) {
 function resetGame() {
     const resetPassword = prompt('Enter the reset password:');
     if (resetPassword === '2055108') {
-        // Clear all stored data
-        localStorage.clear();
-
-        // Reinitialize default points
-        localStorage.setItem('troop1-points', 0);
-        localStorage.setItem('troop2-points', 0);
-
+        // Clear all stored data in Firestore
+        saveDataToFirestore({
+            'troop1-points': 0,
+            'troop2-points': 0,
+            'troop1-task': null,
+            'troop2-task': null,
+            'active-troop1-task': null,
+            'active-troop2-task': null
+        });
         alert('Game reset successfully! All data has been cleared.');
         navigateTo('main-page');
     } else {
