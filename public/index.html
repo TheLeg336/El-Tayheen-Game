@@ -4,80 +4,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Compass App</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="styles.css"> <!-- Link to your CSS file -->
 </head>
 <body>
-    <!-- Splash Screen -->
-    <div id="splash-screen" class="splash-screen">
-        <img src="logo.png" alt="Logo" class="centered-logo">
-        <h1>Loading...</h1>
-    </div>
-
-    <!-- Main App Container -->
     <div id="app">
-        <!-- Main Page -->
+        <!-- Splash Screen (Removed) -->
+        <!-- No loading overlay or splash screen -->
+
+        <!-- Main Pages -->
         <div id="main-page" class="page active">
-            <h1>Welcome to the Compass App</h1>
-            <button onclick="navigateTo('leader-page')">Leader Login</button>
-            <button onclick="navigateTo('player-page')">Player Login</button>
+            <h1>Welcome to Compass App</h1>
+            <button onclick="navigateTo('player-page')">Start</button>
         </div>
 
-        <!-- Leader Pages -->
-        <div id="leader-page" class="page">
-            <!-- Password Setup -->
-            <div id="password-setup">
-                <h2>Set Leader Password</h2>
-                <input type="password" id="new-password" placeholder="Enter new password">
-                <button onclick="savePassword()">Save Password</button>
-            </div>
-
-            <!-- Password Input -->
-            <div id="password-input" style="display: none;">
-                <h2>Enter Leader Password</h2>
-                <input type="password" id="existing-password" placeholder="Enter password">
-                <button onclick="validatePassword()">Login</button>
-            </div>
-
-            <!-- Leader Content -->
-            <div id="leader-content" style="display: none;">
-                <h2>Leader Dashboard</h2>
-                <button onclick="navigateTo('create-task-page')">Create Tasks</button>
-                <button onclick="navigateTo('view-current-task-page')">View Current Tasks</button>
-                <button onclick="navigateTo('points-page')">View Points</button>
-                <button onclick="resetGame()">Reset Game</button>
-            </div>
-        </div>
-
-        <!-- Player Pages -->
+        <!-- Player Page -->
         <div id="player-page" class="page">
-            <!-- Troop Selection -->
             <div id="troop-selection">
                 <h2>Select Your Troop</h2>
                 <button onclick="selectTroop('troop1')">Troop 1</button>
                 <button onclick="selectTroop('troop2')">Troop 2</button>
             </div>
-
-            <!-- Troop Setup -->
             <div id="troop-setup" style="display: none;">
-                <h2>Setup Troop</h2>
-                <input type="text" id="troop-name" placeholder="Enter troop name">
-                <input type="password" id="troop-password" placeholder="Enter troop password">
+                <h2>Set Up Troop</h2>
+                <input id="troop-name" type="text" placeholder="Enter Troop Name">
+                <input id="troop-password" type="password" placeholder="Enter Password">
                 <button onclick="saveTroop()">Save Troop</button>
             </div>
-
-            <!-- Troop Login -->
             <div id="troop-login" style="display: none;">
-                <h2>Enter Troop Password</h2>
-                <input type="password" id="troop-login-password" placeholder="Enter password">
+                <h2>Login to Troop</h2>
+                <input id="troop-login-password" type="password" placeholder="Enter Password">
                 <button onclick="validateTroopPassword()">Login</button>
             </div>
-
-            <!-- Troop Content -->
             <div id="troop-content" style="display: none;">
-                <h2 id="troop-display-name">Welcome to Troop</h2>
-                <p id="task-description-player">Task Description</p>
-                <p id="submission-details-player">Submission Details</p>
-                <div id="compass-module" class="compass-module">
+                <h2 id="troop-display-name"></h2>
+                <p id="task-description-player"></p>
+                <p id="submission-details-player"></p>
+                <div id="compass-module">
                     <div class="compass-base">
                         <div class="compass-markers">
                             <div class="north">N</div>
@@ -91,14 +53,35 @@
                 <p id="timer">00:00</p>
                 <div id="task-details" style="display: none;">
                     <h3>Task Details</h3>
-                    <button onclick="submitTask()">Submit Task</button>
+                    <p>You have reached the task location!</p>
                 </div>
+            </div>
+        </div>
+
+        <!-- Leader Page -->
+        <div id="leader-page" class="page">
+            <div id="password-setup" style="display: none;">
+                <h2>Set Leader Password</h2>
+                <input id="new-password" type="password" placeholder="Enter New Password">
+                <button onclick="savePassword()">Save Password</button>
+            </div>
+            <div id="password-input" style="display: none;">
+                <h2>Enter Leader Password</h2>
+                <input id="existing-password" type="password" placeholder="Enter Password">
+                <button onclick="validatePassword()">Login</button>
+            </div>
+            <div id="leader-content" style="display: none;">
+                <h2>Leader Dashboard</h2>
+                <button onclick="navigateTo('create-task-page')">Create Tasks</button>
+                <button onclick="navigateTo('view-current-task-page')">View Current Tasks</button>
+                <button onclick="navigateTo('points-page')">View Points</button>
+                <button onclick="resetGame()">Reset Game</button>
             </div>
         </div>
 
         <!-- Create Task Page -->
         <div id="create-task-page" class="page">
-            <h2>Create Tasks</h2>
+            <h2>Create Task</h2>
             <button id="troop1-task-button" onclick="navigateTo('troop1-task-page')">Create Task for Troop 1</button>
             <button id="troop2-task-button" onclick="navigateTo('troop2-task-page')">Create Task for Troop 2</button>
         </div>
@@ -106,12 +89,12 @@
         <!-- Troop 1 Task Page -->
         <div id="troop1-task-page" class="page">
             <h2>Create Task for Troop 1</h2>
-            <input type="text" id="task-description" placeholder="Task Description">
-            <input type="text" id="submission-details" placeholder="Submission Details">
-            <input type="number" id="time" placeholder="Time (minutes)">
-            <input type="text" id="reward-details" placeholder="Reward Details">
-            <input type="text" id="latitude-troop1" placeholder="Latitude">
-            <input type="text" id="longitude-troop1" placeholder="Longitude">
+            <textarea id="task-description" placeholder="Task Description"></textarea>
+            <textarea id="submission-details" placeholder="Submission Details"></textarea>
+            <input id="time" type="number" placeholder="Time (minutes)">
+            <textarea id="reward-details" placeholder="Reward Details"></textarea>
+            <input id="latitude-troop1" type="text" placeholder="Latitude" readonly>
+            <input id="longitude-troop1" type="text" placeholder="Longitude" readonly>
             <button onclick="extractCoordinates('troop1')">Extract Coordinates</button>
             <button onclick="saveTask('troop1')">Save Task</button>
         </div>
@@ -119,12 +102,12 @@
         <!-- Troop 2 Task Page -->
         <div id="troop2-task-page" class="page">
             <h2>Create Task for Troop 2</h2>
-            <input type="text" id="task-description" placeholder="Task Description">
-            <input type="text" id="submission-details" placeholder="Submission Details">
-            <input type="number" id="time" placeholder="Time (minutes)">
-            <input type="text" id="reward-details" placeholder="Reward Details">
-            <input type="text" id="latitude-troop2" placeholder="Latitude">
-            <input type="text" id="longitude-troop2" placeholder="Longitude">
+            <textarea id="task-description" placeholder="Task Description"></textarea>
+            <textarea id="submission-details" placeholder="Submission Details"></textarea>
+            <input id="time" type="number" placeholder="Time (minutes)">
+            <textarea id="reward-details" placeholder="Reward Details"></textarea>
+            <input id="latitude-troop2" type="text" placeholder="Latitude" readonly>
+            <input id="longitude-troop2" type="text" placeholder="Longitude" readonly>
             <button onclick="extractCoordinates('troop2')">Extract Coordinates</button>
             <button onclick="saveTask('troop2')">Save Task</button>
         </div>
@@ -132,21 +115,25 @@
         <!-- View Current Task Page -->
         <div id="view-current-task-page" class="page">
             <h2>Current Tasks</h2>
-            <p><strong>Troop 1 Task:</strong> <span id="troop1-task-description">No active task.</span></p>
-            <p><strong>Troop 2 Task:</strong> <span id="troop2-task-description">No active task.</span></p>
+            <h3>Troop 1 Task</h3>
+            <p id="troop1-task-description">No active task.</p>
+            <h3>Troop 2 Task</h3>
+            <p id="troop2-task-description">No active task.</p>
+            <button onclick="navigateTo('leader-page')">Back</button>
         </div>
 
         <!-- Points Page -->
         <div id="points-page" class="page">
             <h2>Points</h2>
-            <p><strong>Troop 1 Points:</strong> <span id="troop1-points">0</span></p>
-            <p><strong>Troop 2 Points:</strong> <span id="troop2-points">0</span></p>
+            <p>Troop 1 Points: <span id="troop1-points">0</span></p>
+            <p>Troop 2 Points: <span id="troop2-points">0</span></p>
+            <button onclick="declareWinner('troop1')">Declare Troop 1 Winner</button>
+            <button onclick="declareWinner('troop2')">Declare Troop 2 Winner</button>
+            <button onclick="navigateTo('leader-page')">Back</button>
         </div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script type="module" src="https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js"></script>
-    <script type="module" src="https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js"></script>
-    <script type="module" src="app.js"></script>
+    <!-- JavaScript -->
+    <script src="app.js"></script> <!-- Link to your JavaScript file -->
 </body>
 </html>
