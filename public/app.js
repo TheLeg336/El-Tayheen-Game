@@ -14,20 +14,6 @@ const firebaseConfig = {
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
 
-// Test Firestore Connection
-const testFirestoreConnection = async () => {
-    try {
-        const testRef = doc(db, "test", "connection");
-        await setDoc(testRef, { message: "Firebase connection successful!" });
-        console.log("Firestore connection successful!");
-    } catch (error) {
-        console.error("Firestore connection error:", error);
-    }
-};
-
-// Run the test
-testFirestoreConnection();
-
 // Reference to the Firestore document
 const gameDataRef = doc(db, "gameData", "tasks");
 
@@ -36,18 +22,59 @@ let playerCoordinates = null; // Current user location
 let taskCoordinates = null; // Target coordinates
 let currentHeading = 0; // Device's current heading (from gyroscope)
 let targetBearing = 0; // Bearing to the target coordinates
-let timerInterval = null;
 
-// Show Splash Screen Initially
-showSplashScreen();
+// Request Permissions at App Start
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        // Test Firestore connection
+        const testRef = doc(db, "test", "connection");
+        await setDoc(testRef, { message: "Firebase connection successful!" });
+        console.log("Firestore connection successful!");
 
-// Listen for real-time updates from Firestore
-onSnapshot(gameDataRef, (docSnap) => {
-    if (docSnap.exists()) {
-        const data = docSnap.data();
-        console.log("Real-time data update:", data);
-        // Update the UI with the latest data
-        updateUI(data);
+        // Request geolocation permission
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    playerCoordinates = {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude
+                    };
+                    console.log("Player location fetched:", playerCoordinates);
+                },
+                (error) => {
+                    console.error("Error fetching location:", error.message);
+                    alert("Failed to fetch location. Please enable geolocation.");
+                }
+            );
+        } else {
+            console.error("Geolocation is not supported by this browser.");
+            alert("Geolocation is not supported by your browser.");
+        }
+
+        // Request device orientation permission
+        if (window.DeviceOrientationEvent) {
+            window.addEventListener('deviceorientation', (event) => {
+                if (event.alpha !== null) {
+                    currentHeading = event.alpha; // Alpha ranges from 0 to 360 degrees
+                    updateCompassNeedleWithGyro();
+                }
+            });
+        } else {
+            alert('Device orientation is not supported by this browser.');
+        }
+
+        // Fetch initial data from Firestore
+        onSnapshot(gameDataRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                console.log("Initial data loaded:", data);
+                updateUI(data);
+            }
+        });
+
+    } catch (error) {
+        console.error("Error during initialization:", error);
+        alert("Failed to initialize the app. Please check the console for details.");
     }
 });
 
@@ -130,7 +157,6 @@ function validatePassword() {
                 document.getElementById('password-setup').style.display = 'none';
                 document.getElementById('password-input').style.display = 'none';
                 document.getElementById('leader-content').style.display = 'block';
-                hideSplashScreen(); // Hide the splash screen after login
             } else {
                 alert('Incorrect password. Please try again.');
             }
@@ -231,7 +257,6 @@ function validateTroopPassword() {
                     // Fetch player location and activate compass
                     fetchPlayerLocation();
                 }
-                hideSplashScreen(); // Hide the splash screen after login
             } else {
                 alert('Incorrect password. Please try again.');
             }
@@ -433,7 +458,8 @@ function updateCompassNeedleWithGyro() {
         if (relativeAngle > 180) relativeAngle -= 360;
         if (relativeAngle < -180) relativeAngle += 360;
         // Rotate the compass needle
-document.querySelector('.compass-needle').style.transform = `translate(-50%, -100%) rotate(${relativeAngle}deg)`;
+        document.querySelector('.compass-needle').style.transform = `translate(-50%, -100%) rotate(${relativeAngle}deg)`;
+    }
 }
 
 // Fetch Player Location
@@ -452,20 +478,15 @@ function fetchPlayerLocation() {
                     updateCompassNeedleWithGyro(); // Update needle with gyroscope data
                     checkProximity();
                 }
-
-                // Hide the splash screen after fetching location
-                hideSplashScreen();
             },
             (error) => {
                 console.error("Error fetching location:", error.message);
                 alert("Failed to fetch location. Please enable geolocation.");
-                hideSplashScreen(); // Still hide the splash screen even if there's an error
             }
         );
     } else {
         console.error("Geolocation is not supported by this browser.");
         alert("Geolocation is not supported by your browser.");
-        hideSplashScreen();
     }
 }
 
@@ -538,14 +559,43 @@ function resetGame() {
     }
 }
 
-// Show Splash Screen Initially
-showSplashScreen();
-
-// Document Ready Listener
+// Request Permissions at App Start
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        // Initialize Firebase
+        // Test Firestore connection
         await testFirestoreConnection();
+
+        // Request geolocation permission
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    playerCoordinates = {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude
+                    };
+                    console.log("Player location fetched:", playerCoordinates);
+                },
+                (error) => {
+                    console.error("Error fetching location:", error.message);
+                    alert("Failed to fetch location. Please enable geolocation.");
+                }
+            );
+        } else {
+            console.error("Geolocation is not supported by this browser.");
+            alert("Geolocation is not supported by your browser.");
+        }
+
+        // Request device orientation permission
+        if (window.DeviceOrientationEvent) {
+            window.addEventListener('deviceorientation', (event) => {
+                if (event.alpha !== null) {
+                    currentHeading = event.alpha; // Alpha ranges from 0 to 360 degrees
+                    updateCompassNeedleWithGyro();
+                }
+            });
+        } else {
+            alert('Device orientation is not supported by this browser.');
+        }
 
         // Fetch initial data from Firestore
         onSnapshot(gameDataRef, (docSnap) => {
@@ -556,12 +606,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
 
-        // Hide the splash screen after initialization
-        hideSplashScreen();
     } catch (error) {
         console.error("Error during initialization:", error);
         alert("Failed to initialize the app. Please check the console for details.");
-        hideSplashScreen(); // Still hide the splash screen even if there's an error
     }
 });
-}
