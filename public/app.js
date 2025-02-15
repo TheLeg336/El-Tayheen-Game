@@ -23,6 +23,18 @@ let taskCoordinates = null; // Target coordinates
 let currentHeading = 0; // Device's current heading (from gyroscope)
 let targetBearing = 0; // Bearing to the target coordinates
 
+// Test Firestore Connection
+const testFirestoreConnection = async () => {
+    try {
+        const testRef = doc(db, "test", "connection");
+        await setDoc(testRef, { message: "Firebase connection successful!" });
+        console.log("Firestore connection successful!");
+    } catch (error) {
+        console.error("Firestore connection error:", error);
+        throw error; // Re-throw the error so it can be caught in the caller
+    }
+};
+
 // Request Permissions at App Start
 document.addEventListener('DOMContentLoaded', async () => {
     try {
