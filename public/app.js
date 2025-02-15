@@ -9,7 +9,7 @@ const firebaseConfig = {
   projectId: "compassapp11",
   storageBucket: "compassapp11.firebasestorage.app",
   messagingSenderId: "223152942317",
-  appId: "1:223152942317:web:37cbeadf1fb4b34ad130e4"
+  appId: "1:223152942317:web:"
 };
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
@@ -31,12 +31,21 @@ testFirestoreConnection();
 // Reference to the Firestore document
 const gameDataRef = doc(db, "gameData", "tasks");
 
-// Listen for real-time updates
+// Global Variables
+let playerCoordinates = null; // Current user location
+let taskCoordinates = null; // Target coordinates
+let currentHeading = 0; // Device's current heading (from gyroscope)
+let targetBearing = 0; // Bearing to the target coordinates
+let timerInterval = null;
+
+// Show Splash Screen Initially
+showSplashScreen();
+
+// Listen for real-time updates from Firestore
 onSnapshot(gameDataRef, (docSnap) => {
     if (docSnap.exists()) {
         const data = docSnap.data();
         console.log("Real-time data update:", data);
-
         // Update the UI with the latest data
         updateUI(data);
     }
@@ -46,7 +55,6 @@ onSnapshot(gameDataRef, (docSnap) => {
 function updateUI(data) {
     document.getElementById('troop1-points').textContent = data.points?.troop1 || 0;
     document.getElementById('troop2-points').textContent = data.points?.troop2 || 0;
-
     // Example: Update task details
     document.getElementById('troop1-task-description').textContent = data.troop1Task?.taskDescription || 'No active task.';
     document.getElementById('troop2-task-description').textContent = data.troop2Task?.taskDescription || 'No active task.';
@@ -63,12 +71,6 @@ async function saveDataToFirestore(newData) {
     }
 }
 
-// Global Variables
-let playerCoordinates = null; // Current user location
-let taskCoordinates = null; // Target coordinates
-let currentHeading = 0; // Device's current heading (from gyroscope)
-let targetBearing = 0; // Bearing to the target coordinates
-
 // Function to handle navigation between pages
 function navigateTo(pageId) {
     console.log(`Navigating to: ${pageId}`);
@@ -76,7 +78,6 @@ function navigateTo(pageId) {
     document.querySelectorAll('.page').forEach(page => {
         page.classList.remove('active');
     });
-
     // Show the selected page
     const selectedPage = document.getElementById(pageId);
     if (selectedPage) {
@@ -84,7 +85,6 @@ function navigateTo(pageId) {
     } else {
         console.error(`Page with ID "${pageId}" not found.`);
     }
-
     // Handle specific page logic
     if (pageId === 'leader-page') {
         initializeLeaderPage();
@@ -120,18 +120,17 @@ function savePassword() {
 // Validate Leader Password
 function validatePassword() {
     const enteredPassword = document.getElementById('existing-password').value;
-
     // Fetch the leader password from Firestore
     onSnapshot(gameDataRef, (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
             const savedPassword = data.leaderPassword;
-
             if (enteredPassword === savedPassword) {
                 // Password correct, show leader content
                 document.getElementById('password-setup').style.display = 'none';
                 document.getElementById('password-input').style.display = 'none';
                 document.getElementById('leader-content').style.display = 'block';
+                hideSplashScreen(); // Hide the splash screen after login
             } else {
                 alert('Incorrect password. Please try again.');
             }
@@ -145,23 +144,19 @@ function initializePlayerPage() {
     const troopSetup = document.getElementById('troop-setup');
     const troopLogin = document.getElementById('troop-login');
     const troopContent = document.getElementById('troop-content');
-
     // Reset visibility
     troopSelection.style.display = 'block';
     troopSetup.style.display = 'none';
     troopLogin.style.display = 'none';
     troopContent.style.display = 'none';
-
     // Clear any previously selected troop
     localStorage.removeItem('selectedTroop');
-
     // Fetch troop names from Firestore
     onSnapshot(gameDataRef, (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
             const troop1Name = data.troop1Name || 'Troop 1';
             const troop2Name = data.troop2Name || 'Troop 2';
-
             document.querySelector('#troop-selection button:nth-child(1)').textContent = troop1Name;
             document.querySelector('#troop-selection button:nth-child(2)').textContent = troop2Name;
         }
@@ -171,13 +166,11 @@ function initializePlayerPage() {
 // Select Troop
 function selectTroop(troopKey) {
     localStorage.setItem('selectedTroop', troopKey);
-
     // Fetch troop data from Firestore
     onSnapshot(gameDataRef, (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
             const troopPassword = data[`${troopKey}Password`];
-
             if (troopPassword) {
                 // Troop already has a password, show login
                 document.getElementById('troop-selection').style.display = 'none';
@@ -196,7 +189,6 @@ function saveTroop() {
     const troopKey = localStorage.getItem('selectedTroop');
     const troopName = document.getElementById('troop-name').value;
     const troopPassword = document.getElementById('troop-password').value;
-
     if (troopName.trim() && troopPassword.trim()) {
         saveDataToFirestore({
             [`${troopKey}Name`]: troopName,
@@ -213,20 +205,17 @@ function saveTroop() {
 function validateTroopPassword() {
     const troopKey = localStorage.getItem('selectedTroop');
     const enteredPassword = document.getElementById('troop-login-password').value;
-
     // Fetch troop data from Firestore
     onSnapshot(gameDataRef, (docSnap) => {
         if (docSnap.exists()) {
             const data = docSnap.data();
             const troopPassword = data[`${troopKey}Password`];
             const troopName = data[`${troopKey}Name`];
-
             if (enteredPassword === troopPassword) {
                 // Password correct, show troop content
                 document.getElementById('troop-display-name').textContent = `Welcome to ${troopName}`;
                 document.getElementById('troop-login').style.display = 'none';
                 document.getElementById('troop-content').style.display = 'block';
-
                 // Load active task for the troop
                 const activeTask = data[`active-${troopKey}-task`];
                 if (activeTask) {
@@ -234,17 +223,15 @@ function validateTroopPassword() {
                         latitude: parseFloat(activeTask.latitude),
                         longitude: parseFloat(activeTask.longitude)
                     };
-
                     // Display task details and start timer
                     document.getElementById('task-description-player').textContent = activeTask.taskDescription;
                     document.getElementById('submission-details-player').textContent = activeTask.submissionDetails;
-
                     // Start timer
                     startTimer(parseInt(activeTask.time));
-
                     // Fetch player location and activate compass
                     fetchPlayerLocation();
                 }
+                hideSplashScreen(); // Hide the splash screen after login
             } else {
                 alert('Incorrect password. Please try again.');
             }
@@ -259,7 +246,6 @@ function updateCreateTaskButtons() {
             const data = docSnap.data();
             const troop1Name = data.troop1Name || 'Troop 1';
             const troop2Name = data.troop2Name || 'Troop 2';
-
             document.getElementById('troop1-task-button').textContent = troop1Name;
             document.getElementById('troop2-task-button').textContent = troop2Name;
         }
@@ -273,7 +259,6 @@ function extractCoordinates(troopKey) {
             (position) => {
                 const latitude = position.coords.latitude.toFixed(6);
                 const longitude = position.coords.longitude.toFixed(6);
-
                 // Populate the input fields based on troopKey
                 if (troopKey === 'troop1') {
                     document.getElementById('latitude-troop1').value = latitude;
@@ -282,7 +267,6 @@ function extractCoordinates(troopKey) {
                     document.getElementById('latitude-troop2').value = latitude;
                     document.getElementById('longitude-troop2').value = longitude;
                 }
-
                 alert(`Coordinates extracted for ${troopKey}: Latitude ${latitude}, Longitude ${longitude}`);
             },
             (error) => {
@@ -303,13 +287,11 @@ function saveTask(troopKey) {
     const rewardDetails = document.getElementById('reward-details').value;
     const latitude = document.getElementById(`latitude-${troopKey}`).value;
     const longitude = document.getElementById(`longitude-${troopKey}`).value;
-
     // Validate inputs
     if (!taskDescription || !submissionDetails || !time || !rewardDetails || !latitude || !longitude) {
         alert('All fields are required!');
         return;
     }
-
     // Save task details to Firestore
     const taskData = {
         taskDescription,
@@ -321,7 +303,6 @@ function saveTask(troopKey) {
     };
     saveDataToFirestore({ [`${troopKey}-task`]: taskData });
     alert(`Task saved for ${troopKey}`);
-
     // Navigate to the next troop's task page or show "Send Tasks" button
     if (troopKey === 'troop1' && !document.getElementById('troop2-task')) {
         navigateTo('troop2-task-page');
@@ -345,12 +326,10 @@ function sendTasks() {
             const data = docSnap.data();
             const troop1Task = data['troop1-task'];
             const troop2Task = data['troop2-task'];
-
             if (!troop1Task || !troop2Task) {
                 alert('Tasks must be created for both troops before sending.');
                 return;
             }
-
             // Assign tasks to troops in Firestore
             saveDataToFirestore({
                 'active-troop1-task': troop1Task,
@@ -369,13 +348,11 @@ function initializeViewCurrentTaskPage() {
             const data = docSnap.data();
             const troop1Task = data['active-troop1-task'];
             const troop2Task = data['active-troop2-task'];
-
             if (troop1Task) {
                 document.getElementById('troop1-task-description').textContent = troop1Task.taskDescription;
             } else {
                 document.getElementById('troop1-task-description').textContent = 'No active task.';
             }
-
             if (troop2Task) {
                 document.getElementById('troop2-task-description').textContent = troop2Task.taskDescription;
             } else {
@@ -392,7 +369,6 @@ function declareWinner(winningTroop) {
             const data = docSnap.data();
             let winningTroopPoints = data.points?.[winningTroop] || 0;
             winningTroopPoints += 1; // Increment points for the winning troop
-
             // Update points in Firestore
             saveDataToFirestore({ [`points.${winningTroop}`]: winningTroopPoints });
             alert(`${winningTroop.toUpperCase()} has been declared the winner!`);
@@ -408,7 +384,6 @@ function initializePointsPage() {
             const data = docSnap.data();
             const troop1Points = data.points?.troop1 || 0;
             const troop2Points = data.points?.troop2 || 0;
-
             document.getElementById('troop1-points').textContent = troop1Points;
             document.getElementById('troop2-points').textContent = troop2Points;
         }
@@ -432,13 +407,11 @@ function calculateBearing(playerLat, playerLon, targetLat, targetLon) {
     const φ1 = playerLat * Math.PI / 180; // Convert latitude to radians
     const φ2 = targetLat * Math.PI / 180;
     const Δλ = (targetLon - playerLon) * Math.PI / 180; // Difference in longitude
-
     // Calculate bearing using spherical trigonometry
     const y = Math.sin(Δλ) * Math.cos(φ2);
     const x = Math.cos(φ1) * Math.sin(φ2) -
-              Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+        Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
     let bearing = Math.atan2(y, x) * (180 / Math.PI); // Convert to degrees
-
     // Normalize bearing to range [0, 360)
     bearing = (bearing + 360) % 360;
     return bearing;
@@ -454,17 +427,13 @@ function updateCompassNeedleWithGyro() {
             taskCoordinates.latitude,
             taskCoordinates.longitude
         );
-
         // Calculate the relative angle between the device's heading and the target bearing
         let relativeAngle = targetBearing - currentHeading;
-
         // Normalize the angle to range [-180, 180]
         if (relativeAngle > 180) relativeAngle -= 360;
         if (relativeAngle < -180) relativeAngle += 360;
-
         // Rotate the compass needle
-        document.querySelector('.compass-needle').style.transform = `translate(-50%, -100%) rotate(${relativeAngle}deg)`;
-    }
+document.querySelector('.compass-needle').style.transform = `translate(-50%, -100%) rotate(${relativeAngle}deg)`;
 }
 
 // Fetch Player Location
@@ -476,19 +445,27 @@ function fetchPlayerLocation() {
                     latitude: position.coords.latitude,
                     longitude: position.coords.longitude
                 };
+                console.log("Player location fetched:", playerCoordinates);
 
                 // Update compass and check proximity
                 if (taskCoordinates) {
                     updateCompassNeedleWithGyro(); // Update needle with gyroscope data
                     checkProximity();
                 }
+
+                // Hide the splash screen after fetching location
+                hideSplashScreen();
             },
             (error) => {
-                alert('Error fetching location: ' + error.message);
+                console.error("Error fetching location:", error.message);
+                alert("Failed to fetch location. Please enable geolocation.");
+                hideSplashScreen(); // Still hide the splash screen even if there's an error
             }
         );
     } else {
-        alert('Geolocation is not supported by this browser.');
+        console.error("Geolocation is not supported by this browser.");
+        alert("Geolocation is not supported by your browser.");
+        hideSplashScreen();
     }
 }
 
@@ -515,7 +492,6 @@ function checkProximity() {
             taskCoordinates.latitude,
             taskCoordinates.longitude
         );
-
         if (distance <= 20) { // 20 feet (converted to meters)
             document.getElementById('task-details').style.display = 'block';
             clearInterval(timerInterval); // Stop the timer when the task is revealed
@@ -534,7 +510,6 @@ function startTimer(durationMinutes) {
         const seconds = timeLeft % 60;
         timerElement.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         timeLeft--;
-
         if (timeLeft < 0) {
             clearInterval(timerInterval);
             timerElement.textContent = '00:00';
@@ -562,3 +537,30 @@ function resetGame() {
         alert('Incorrect reset password. Access denied.');
     }
 }
+
+// Show Splash Screen Initially
+showSplashScreen();
+
+// Document Ready Listener
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        // Initialize Firebase
+        await testFirestoreConnection();
+
+        // Fetch initial data from Firestore
+        onSnapshot(gameDataRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                console.log("Initial data loaded:", data);
+                updateUI(data);
+            }
+        });
+
+        // Hide the splash screen after initialization
+        hideSplashScreen();
+    } catch (error) {
+        console.error("Error during initialization:", error);
+        alert("Failed to initialize the app. Please check the console for details.");
+        hideSplashScreen(); // Still hide the splash screen even if there's an error
+    }
+});
