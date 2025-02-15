@@ -39,9 +39,7 @@ const testFirestoreConnection = async () => {
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         // Test Firestore connection
-        const testRef = doc(db, "test", "connection");
-        await setDoc(testRef, { message: "Firebase connection successful!" });
-        console.log("Firestore connection successful!");
+        await testFirestoreConnection();
 
         // Request geolocation permission
         if (navigator.geolocation) {
