@@ -14,6 +14,20 @@ const firebaseConfig = {
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
 
+// Test Firestore Connection
+const testFirestoreConnection = async () => {
+    try {
+        const testRef = doc(db, "test", "connection");
+        await setDoc(testRef, { message: "Firebase connection successful!" });
+        console.log("Firestore connection successful!");
+    } catch (error) {
+        console.error("Firestore connection error:", error);
+    }
+};
+
+// Run the test
+testFirestoreConnection();
+
 // Reference to the Firestore document
 const gameDataRef = doc(db, "gameData", "tasks");
 
