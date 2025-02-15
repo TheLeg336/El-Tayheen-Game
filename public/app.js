@@ -1,6 +1,6 @@
 // Import Firebase SDK
-import { initializeApp } from "firebase/app";
-import { getFirestore, doc, onSnapshot, setDoc, updateDoc } from "firebase/firestore";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.x.x/firebase-app.js";
+import { getFirestore, doc, onSnapshot, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.x.x/firebase-firestore.js";
 
 // Initialize Firebase with your configuration
 const firebaseConfig = {
@@ -533,13 +533,15 @@ function startTimer(durationMinutes) {
 function resetGame() {
     const resetPassword = prompt('Enter the reset password:');
     if (resetPassword === '2055108') {
-        // Clear all stored data
-        localStorage.clear();
-
-        // Reinitialize default points
-        localStorage.setItem('troop1-points', 0);
-        localStorage.setItem('troop2-points', 0);
-
+        // Clear all stored data in Firestore
+        saveDataToFirestore({
+            'troop1-points': 0,
+            'troop2-points': 0,
+            'troop1-task': null,
+            'troop2-task': null,
+            'active-troop1-task': null,
+            'active-troop2-task': null
+        });
         alert('Game reset successfully! All data has been cleared.');
         navigateTo('main-page');
     } else {
