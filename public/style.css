@@ -317,28 +317,28 @@ li:hover {
 .compass-markers .east { right: 10%; top: 50%; transform: translateY(-50%); }
 .compass-markers .west { left: 10%; top: 50%; transform: translateY(-50%); }
 .compass-needle {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform-origin: center;
-    width: 6px;
-    height: 100px;
-    background-color: #ff4d4d;
-    border-radius: 3px;
-    transform: translate(-50%, -100%) rotate(0deg);
-    transition: transform 0.1s ease-out;
+   position: absolute;
+    top: 50%; /* Position the needle vertically at the center */
+    left: 50%; /* Position the needle horizontally at the center */
+    transform-origin: center; /* Set the rotation origin to the center */
+    width: 6px; /* Width of the needle */
+    height: 100px; /* Height of the needle */
+    background-color: #ff4d4d; /* Color of the needle */
+    border-radius: 3px; /* Rounded edges for the needle */
+    transform: translate(-50%, -50%) rotate(0deg); /* Center the needle and set initial rotation */
+    transition: transform 0.1s ease-out; /* Smooth rotation animation */
 }
 .compass-needle::after {
     content: '';
     position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
+    bottom: 0; /* Attach the arrowhead to the bottom of the needle */
+    left: 50%; /* Center the arrowhead horizontally */
+    transform: translateX(-50%); /* Adjust for exact centering */
     width: 0;
     height: 0;
-    border-left: 10px solid transparent;
+    border-left: 10px solid transparent; /* Create a triangular arrowhead */
     border-right: 10px solid transparent;
-    border-bottom: 20px solid #ff4d4d;
+    border-bottom: 20px solid #ff4d4d; /* Color of the arrowhead */
 }
 /* Modals */
 .modal {
