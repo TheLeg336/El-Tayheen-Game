@@ -14,15 +14,6 @@ const firebaseConfig = {
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
 
-// Reference to the Firestore document
-const gameDataRef = doc(db, "gameData", "tasks");
-
-// Global Variables
-let playerCoordinates = null; // Current user location
-let taskCoordinates = null; // Target coordinates
-let currentHeading = 0; // Device's current heading (from gyroscope)
-let targetBearing = 0; // Bearing to the target coordinates
-
 // Test Firestore Connection
 const testFirestoreConnection = async () => {
     try {
@@ -31,60 +22,22 @@ const testFirestoreConnection = async () => {
         console.log("Firestore connection successful!");
     } catch (error) {
         console.error("Firestore connection error:", error);
-        throw error; // Re-throw the error so it can be caught in the caller
     }
 };
 
-// Request Permissions at App Start
-document.addEventListener('DOMContentLoaded', async () => {
-    try {
-        // Test Firestore connection
-        await testFirestoreConnection();
+// Run the test in the background
+testFirestoreConnection();
 
-        // Request geolocation permission
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    playerCoordinates = {
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude
-                    };
-                    console.log("Player location fetched:", playerCoordinates);
-                },
-                (error) => {
-                    console.error("Error fetching location:", error.message);
-                    alert("Failed to fetch location. Please enable geolocation.");
-                }
-            );
-        } else {
-            console.error("Geolocation is not supported by this browser.");
-            alert("Geolocation is not supported by your browser.");
-        }
+// Reference to the Firestore document
+const gameDataRef = doc(db, "gameData", "tasks");
 
-        // Request device orientation permission
-        if (window.DeviceOrientationEvent) {
-            window.addEventListener('deviceorientation', (event) => {
-                if (event.alpha !== null) {
-                    currentHeading = event.alpha; // Alpha ranges from 0 to 360 degrees
-                    updateCompassNeedleWithGyro();
-                }
-            });
-        } else {
-            alert('Device orientation is not supported by this browser.');
-        }
-
-        // Fetch initial data from Firestore
-        onSnapshot(gameDataRef, (docSnap) => {
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                console.log("Initial data loaded:", data);
-                updateUI(data);
-            }
-        });
-
-    } catch (error) {
-        console.error("Error during initialization:", error);
-        alert("Failed to initialize the app. Please check the console for details.");
+// Listen for real-time updates
+onSnapshot(gameDataRef, (docSnap) => {
+    if (docSnap.exists()) {
+        const data = docSnap.data();
+        console.log("Real-time data update:", data);
+        // Update the UI with the latest data
+        updateUI(data);
     }
 });
 
@@ -107,6 +60,12 @@ async function saveDataToFirestore(newData) {
         alert("Failed to save data. Please try again later.");
     }
 }
+
+// Global Variables
+let playerCoordinates = null; // Current user location
+let taskCoordinates = null; // Target coordinates
+let currentHeading = 0; // Device's current heading (from gyroscope)
+let targetBearing = 0; // Bearing to the target coordinates
 
 // Function to handle navigation between pages
 function navigateTo(pageId) {
@@ -490,13 +449,11 @@ function fetchPlayerLocation() {
                 }
             },
             (error) => {
-                console.error("Error fetching location:", error.message);
-                alert("Failed to fetch location. Please enable geolocation.");
+                alert('Error fetching location: ' + error.message);
             }
         );
     } else {
-        console.error("Geolocation is not supported by this browser.");
-        alert("Geolocation is not supported by your browser.");
+        alert('Geolocation is not supported by this browser.');
     }
 }
 
@@ -569,7 +526,7 @@ function resetGame() {
     }
 }
 
-// Request Permissions at App Start
+// Document Ready Listener
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         // Test Firestore connection
@@ -615,6 +572,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 updateUI(data);
             }
         });
+
+        // Navigate directly to the role selection screen
+        navigateTo('player-page');
 
     } catch (error) {
         console.error("Error during initialization:", error);
