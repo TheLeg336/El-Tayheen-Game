@@ -1,33 +1,52 @@
 const express = require('express');
 const path = require('path');
-const fs = require('fs'); // For reading/writing data.json
+const { initializeApp } = require('firebase/app');
+const { getFirestore, doc, getDoc, setDoc } = require('firebase/firestore');
+
 const app = express();
-const PORT = process.env.PORT || 3000; // Use environment variable for port (important for Render)
+const PORT = process.env.PORT || 3000;
+
+// Initialize Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyDBDPjNAuc8ScJ2oqH4sISXQ1jZEdUnxTc",
+  authDomain: "compassapp11.firebaseapp.com",
+  projectId: "compassapp11",
+  storageBucket: "compassapp11.firebasestorage.app",
+  messagingSenderId: "223152942317",
+  appId: "1:223152942317:web:37cbeadf1fb4b34ad130e4"
+};
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
 
 // Middleware to parse JSON
 app.use(express.json());
 
-// Serve static files from the "public" folder
+// Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// API endpoint to read data.json
-app.get('/api/data', (req, res) => {
+// API endpoint to read data from Firestore
+app.get('/api/data', async (req, res) => {
     try {
-        const data = JSON.parse(fs.readFileSync(path.join(__dirname, 'data.json'), 'utf-8'));
-        res.json(data); // Send the data as a JSON response
+        const docRef = doc(db, "gameData", "tasks");
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            res.json(docSnap.data());
+        } else {
+            res.json({ tasks: [], points: { troop1: 0, troop2: 0 } });
+        }
     } catch (error) {
-        res.status(500).json({ error: 'Failed to read data.json' });
+        res.status(500).json({ error: 'Failed to read data' });
     }
 });
 
-// API endpoint to write to data.json
-app.post('/api/data', (req, res) => {
+// API endpoint to write data to Firestore
+app.post('/api/data', async (req, res) => {
     try {
-        const newData = req.body; // Data sent from the frontend
-        fs.writeFileSync(path.join(__dirname, 'data.json'), JSON.stringify(newData, null, 2)); // Write to data.json
+        const newData = req.body;
+        await setDoc(doc(db, "gameData", "tasks"), newData);
         res.json({ message: 'Data updated successfully!' });
     } catch (error) {
-        res.status(500).json({ error: 'Failed to write data.json' });
+        res.status(500).json({ error: 'Failed to write data' });
     }
 });
 
